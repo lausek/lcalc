@@ -2,10 +2,40 @@ use relm::DrawHandler;
 
 use gtk::DrawingArea;
 
+type GraphEntryColor = (f64, f64, f64);
+
+const GRAPH_ENTRY_COLORS: &[GraphEntryColor] = &[
+    (1.0, 0.0, 0.0),
+    (0.0, 1.0, 0.0),
+    (0.0, 0.0, 1.0),
+];
+
+struct GraphEntry {
+    func_name: String,
+    rgb: GraphEntryColor,
+}
+
+impl GraphEntry {
+
+    pub fn from_name(func_name: String) -> Self {
+        Self {
+            func_name,
+            rgb: (0.0, 0.0, 0.0),
+        }
+    }
+
+    pub fn rgb(mut self, rgb: GraphEntryColor) -> Self {
+        self.rgb = rgb; 
+        self
+    }
+
+}
+
 pub struct Graph
 {
     draw_handler: DrawHandler<DrawingArea>,
     draw_area: DrawingArea,
+    graphs: Vec<GraphEntry>,
 }
 
 impl Graph
@@ -15,10 +45,18 @@ impl Graph
         let mut graph = Self {
             draw_handler: DrawHandler::new().expect("no draw handler"),
             draw_area: gtk::DrawingArea::new(),
+            graphs: Vec::new(),
         };
 
         graph.draw_handler.init(&graph.draw_area);
         graph
+    }
+
+    pub fn add_graph(&mut self, graph: String)
+    {
+        let count = self.graphs.len() % GRAPH_ENTRY_COLORS.len();
+        let next = GraphEntry::from_name(graph).rgb(GRAPH_ENTRY_COLORS[count]);
+        self.graphs.push(next);
     }
 
     pub fn draw_area(&self) -> &DrawingArea
@@ -72,5 +110,11 @@ impl Graph
         ctx.paint();
 
         self.draw_grid();
+
+        for (i, GraphEntry { func_name, rgb: (r, g, b)}) in self.graphs.iter().enumerate() {
+            ctx.set_source_rgb(*r, *g, *b);
+            ctx.move_to(10.0, 10.0+10.0*(i as f64));
+            ctx.show_text(func_name.as_ref());
+        }
     }
 }

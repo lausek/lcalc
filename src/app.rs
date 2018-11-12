@@ -45,6 +45,29 @@ pub struct App
     window: Window,
 }
 
+impl App {
+
+    fn update_context(&mut self, cmd: String) {
+        use treecalc::program::node::Node::*;
+        match parse(cmd) {
+            Ok(program) => {
+                let ret = execute_with_ctx(&program, &mut self.model.context);
+                self.model.history.push(format!("{:?}", ret));
+
+                // TODO: check if declaration happened
+                match program {
+                    Mov(box Func(name, _), _) => self.model.graph.add_graph(name),
+                    _ => {},
+                }
+
+                self.update(Msg::Redraw);
+            }
+            _ => {}
+        }
+    }
+
+}
+
 impl Update for App
 {
     type Model = Model;
@@ -60,16 +83,10 @@ impl Update for App
     {
         match event {
             Msg::Change => {
+                // FIXME: maybe `take` this?
                 let cmd = self.model.cmdline.buffer().get_text();
                 self.model.history.push(cmd.clone());
-                match parse(cmd) {
-                    Ok(program) => {
-                        let ret = execute_with_ctx(&program, &mut self.model.context);
-                        self.model.history.push(format!("{:?}", ret));
-                        self.update(Msg::Redraw);
-                    }
-                    _ => {}
-                }
+                self.update_context(cmd);
                 self.model.cmdline.buffer().set_text("");
             }
             Msg::Redraw => self.model.graph.draw(),

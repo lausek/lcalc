@@ -1,4 +1,5 @@
-#![feature(custom_attribute)]
+//#![feature(custom_attribute)]
+#![feature(box_patterns)]
 
 extern crate gtk;
 #[macro_use]
