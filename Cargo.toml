@@ -1,0 +1,11 @@
+[package]
+name = "lcalc-relm"
+version = "0.1.0"
+authors = ["lausek <root@lausek.eu>"]
+edition = "2018"
+
+[dependencies]
+gtk = "^0.5.0"
+relm = "^0.15.0"
+relm-derive = "^0.15.0"
+tree-calc = { git = "https://github.com/lausek/tree-calc.git" }
