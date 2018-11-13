@@ -1,3 +1,8 @@
+use std::rc::Rc;
+use std::cell::RefCell;
+use std::borrow::BorrowMut;
+use std::ops::DerefMut;
+
 use gtk::prelude::*;
 use gtk::{Inhibit, Window, WindowType};
 
@@ -23,19 +28,21 @@ pub struct Model
     graph: Graph,
     cmdline: Cmdline,
     history: History,
-    context: Context,
+    context: Rc<RefCell<Context>>,
 }
 
 impl Model
 {
     fn new() -> Self
     {
-        Self {
+        let mut model = Self {
             graph: Graph::new(),
             cmdline: Cmdline::new(),
             history: History::new(),
-            context: Context::default(),
-        }
+            context: Rc::new(RefCell::new(Context::default())),
+        };
+        model.graph.set_ctx(Rc::clone(&model.context));
+        model
     }
 }
 
@@ -51,7 +58,9 @@ impl App {
         use treecalc::program::node::Node::*;
         match parse(cmd) {
             Ok(program) => {
-                let ret = execute_with_ctx(&program, &mut self.model.context);
+                let ret = {
+                    execute_with_ctx(&program, (*self.model.context).borrow_mut().deref_mut())
+                };
                 self.model.history.push(format!("{:?}", ret));
 
                 // TODO: check if declaration happened
