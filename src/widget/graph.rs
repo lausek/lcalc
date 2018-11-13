@@ -1,16 +1,16 @@
-use std::rc::Rc;
 use std::cell::RefCell;
 use std::ops::Deref;
+use std::rc::Rc;
 
 use relm::DrawHandler;
 
 use gtk::DrawingArea;
 
 use treecalc::program::context::{Context, ContextFunction};
-use treecalc::program::node::NodeBox;
 
 const LINE_WIDTH: f64 = 0.5;
 const GRID_SIZE: f64 = 20.0;
+const FONT_SIZE: f64 = 18.0;
 
 type GraphEntryColor = (f64, f64, f64);
 
@@ -33,25 +33,27 @@ const GRAPH_ENTRY_COLORS: &[GraphEntryColor] = &[
     (0.7529411764705882, 0.2235294117647059, 0.16862745098039217),
 ];
 
-struct GraphEntry {
+struct GraphEntry
+{
     func_name: String,
     rgb: GraphEntryColor,
 }
 
-impl GraphEntry {
-
-    pub fn from_name(func_name: String) -> Self {
+impl GraphEntry
+{
+    pub fn from_name(func_name: String) -> Self
+    {
         Self {
             func_name,
             rgb: (0.0, 0.0, 0.0),
         }
     }
 
-    pub fn rgb(mut self, rgb: GraphEntryColor) -> Self {
-        self.rgb = rgb; 
+    pub fn rgb(mut self, rgb: GraphEntryColor) -> Self
+    {
+        self.rgb = rgb;
         self
     }
-
 }
 
 pub struct Graph
@@ -77,7 +79,8 @@ impl Graph
         graph
     }
 
-    pub fn set_ctx(&mut self, ctx: Rc<RefCell<Context>>) {
+    pub fn set_ctx(&mut self, ctx: Rc<RefCell<Context>>)
+    {
         self.context = Some(ctx);
     }
 
@@ -99,14 +102,7 @@ impl Graph
         let (_, _, width, height) = ctx.clip_extents();
 
         // grid lines
-        ctx.set_source_rgb(0.3, 0.3, 0.3);
         ctx.set_line_width(LINE_WIDTH);
-        ctx.new_path();
-        ctx.move_to(width * 0.5, 0.0);
-        ctx.line_to(width * 0.5, height);
-        ctx.move_to(0.0, height * 0.5);
-        ctx.line_to(width, height * 0.5);
-        ctx.stroke();
 
         ctx.set_source_rgb(0.6, 0.6, 0.6);
         ctx.new_path();
@@ -127,6 +123,14 @@ impl Graph
             }
         }
         ctx.stroke();
+
+        ctx.set_source_rgb(0.3, 0.3, 0.3);
+        ctx.new_path();
+        ctx.move_to(width * 0.5, 0.0);
+        ctx.line_to(width * 0.5, height);
+        ctx.move_to(0.0, height * 0.5);
+        ctx.line_to(width, height * 0.5);
+        ctx.stroke();
     }
 
     pub fn draw(&mut self)
@@ -137,27 +141,38 @@ impl Graph
 
         self.draw_grid();
 
-        for (i, GraphEntry { func_name, rgb: (r, g, b)}) in self.graphs.iter().enumerate() {
+        for (
+            i,
+            GraphEntry {
+                func_name,
+                rgb: (r, g, b),
+            },
+        ) in self.graphs.iter().enumerate()
+        {
             ctx.set_source_rgb(*r, *g, *b);
-            ctx.move_to(10.0, 10.0+10.0*(i as f64));
+            ctx.set_font_size(FONT_SIZE);
+            ctx.move_to(10.0, FONT_SIZE + FONT_SIZE * (i as f64));
             ctx.show_text(func_name.as_ref());
 
             if let Some(progctx) = &mut self.context {
-                let mut progctx = progctx.borrow_mut();
+                let progctx = progctx.borrow_mut();
                 match progctx.getf(func_name) {
-                    Some((args, prog)) => {
+                    Some((_args, prog)) => {
                         let (_, _, width, height) = ctx.clip_extents();
                         ctx.new_path();
                         let seq = generate_seq(prog, progctx.deref());
                         if let Some((fx, fy)) = seq.get(0) {
                             ctx.move_to(*fx, *fy);
                             for (x, y) in seq {
-                                let (nx, ny) = (width*0.5+x*GRID_SIZE, height*0.5+y*GRID_SIZE*-1.0);
+                                let (nx, ny) = (
+                                    width * 0.5 + x * GRID_SIZE,
+                                    height * 0.5 + y * GRID_SIZE * -1.0,
+                                );
                                 ctx.line_to(nx, ny);
                             }
                         }
                         ctx.stroke();
-                    },
+                    }
                     _ => panic!("function not available anymore"),
                 }
             }
@@ -165,8 +180,11 @@ impl Graph
     }
 }
 
-fn generate_seq(program: &ContextFunction, ctx: &Context) -> Vec<(f64, f64)> {
-    use treecalc::program::{execute_with_ctx, node::Node::*, num::Num, Computation::*, context::ContextFunction::*};
+fn generate_seq(program: &ContextFunction, ctx: &Context) -> Vec<(f64, f64)>
+{
+    use treecalc::program::{
+        context::ContextFunction::*, execute_with_ctx, node::Node::*, num::Num, Computation::*,
+    };
     const MIN: f64 = -50.0;
     const MAX: f64 = 50.0;
     const STP: f64 = 0.25;
@@ -182,7 +200,7 @@ fn generate_seq(program: &ContextFunction, ctx: &Context) -> Vec<(f64, f64)> {
             Virtual(prog) => {
                 temp_ctx.set("x".to_string(), Box::new(NVal(Num::from(i as f64))));
                 execute_with_ctx(&prog, &mut temp_ctx)
-            },
+            }
             Native(func) => func(&mut temp_ctx, &vec![Box::new(Var(format!("{}", i)))]),
         };
         if let Ok(Numeric(n)) = result {

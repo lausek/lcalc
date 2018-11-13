@@ -9,9 +9,9 @@ impl History
 {
     pub fn new() -> Self
     {
-        Self {
-            text_view: gtk::TextView::new(),
-        }
+        let text_view = gtk::TextView::new();
+        text_view.set_editable(false);
+        Self { text_view }
     }
 
     pub fn push(&mut self, mut msg: String)

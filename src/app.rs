@@ -1,7 +1,6 @@
-use std::rc::Rc;
 use std::cell::RefCell;
-use std::borrow::BorrowMut;
 use std::ops::DerefMut;
+use std::rc::Rc;
 
 use gtk::prelude::*;
 use gtk::{Inhibit, Window, WindowType};
@@ -52,21 +51,21 @@ pub struct App
     window: Window,
 }
 
-impl App {
-
-    fn update_context(&mut self, cmd: String) {
+impl App
+{
+    fn update_context(&mut self, cmd: String)
+    {
         use treecalc::program::node::Node::*;
         match parse(cmd) {
             Ok(program) => {
-                let ret = {
-                    execute_with_ctx(&program, (*self.model.context).borrow_mut().deref_mut())
-                };
+                let ret =
+                    { execute_with_ctx(&program, (*self.model.context).borrow_mut().deref_mut()) };
                 self.model.history.push(format!("{:?}", ret));
 
                 // TODO: check if declaration happened
                 match program {
                     Mov(box Func(name, _), _) => self.model.graph.add_graph(name),
-                    _ => {},
+                    _ => {}
                 }
 
                 self.update(Msg::Redraw);
@@ -74,7 +73,6 @@ impl App {
             _ => {}
         }
     }
-
 }
 
 impl Update for App
