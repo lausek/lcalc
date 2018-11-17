@@ -2,6 +2,7 @@ use std::cell::RefCell;
 use std::ops::DerefMut;
 use std::rc::Rc;
 
+use gdk::EventScroll;
 use gtk::prelude::*;
 use gtk::{Inhibit, Window, WindowType};
 
@@ -19,6 +20,7 @@ pub enum Msg
 {
     Change,
     Redraw,
+    Scroll(EventScroll),
     Quit,
 }
 
@@ -96,6 +98,12 @@ impl Update for App
                 self.update_context(cmd);
                 self.model.cmdline.buffer().set_text("");
             }
+            Msg::Scroll(evt) => match evt.get_delta() {
+                (0.0, 0.0) => {}
+                (_, delta) => {
+                    self.model.graph.update_scale(delta);
+                }
+            },
             Msg::Redraw => self.model.graph.draw(),
             Msg::Quit => gtk::main_quit(),
         }
@@ -138,6 +146,12 @@ impl Widget for App
             window,
             connect_delete_event(_, _),
             return (Some(Msg::Quit), Inhibit(false))
+        );
+        connect!(
+            relm,
+            window,
+            connect_scroll_event(_, evt),
+            return (Some(Msg::Scroll(evt.clone())), Inhibit(false))
         );
 
         Self { model, window }

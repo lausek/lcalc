@@ -1,6 +1,7 @@
 //#![feature(custom_attribute)]
 #![feature(box_patterns)]
 
+extern crate gdk;
 extern crate gtk;
 #[macro_use]
 extern crate relm;

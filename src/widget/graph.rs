@@ -60,6 +60,7 @@ pub struct Graph
 {
     draw_handler: DrawHandler<DrawingArea>,
     draw_area: DrawingArea,
+    scale: f64,
     context: Option<Rc<RefCell<Context>>>,
     graphs: Vec<GraphEntry>,
 }
@@ -71,6 +72,7 @@ impl Graph
         let mut graph = Self {
             draw_handler: DrawHandler::new().expect("no draw handler"),
             draw_area: gtk::DrawingArea::new(),
+            scale: 1.0,
             context: None,
             graphs: Vec::new(),
         };
@@ -79,9 +81,24 @@ impl Graph
         graph
     }
 
+    pub fn widget(&self) -> &DrawingArea
+    {
+        &self.draw_area
+    }
+
     pub fn set_ctx(&mut self, ctx: Rc<RefCell<Context>>)
     {
         self.context = Some(ctx);
+    }
+
+    pub fn update_scale(&mut self, delta: f64)
+    {
+        // negative so `scroll up` becomes `zoom in`
+        const SMOOTHNESS: f64 = -0.5;
+        if 1.0 <= self.scale + delta * SMOOTHNESS {
+            self.scale += delta * SMOOTHNESS;
+            self.draw();
+        }
     }
 
     pub fn add_graph(&mut self, graph: String)
@@ -136,6 +153,10 @@ impl Graph
     pub fn draw(&mut self)
     {
         let ctx = self.draw_handler.get_context();
+        let (_, _, width, height) = ctx.clip_extents();
+        let scale_factor = GRID_SIZE * self.scale;
+        let scale_config = (width, height, scale_factor);
+
         ctx.set_source_rgb(0.9, 0.9, 0.9);
         ctx.paint();
 
@@ -160,13 +181,13 @@ impl Graph
                     Some((_args, prog)) => {
                         let (_, _, width, height) = ctx.clip_extents();
                         ctx.new_path();
-                        let seq = generate_seq(prog, progctx.deref());
+                        let seq = generate_seq(prog, progctx.deref(), scale_config);
                         if let Some((fx, fy)) = seq.get(0) {
                             ctx.move_to(*fx, *fy);
                             for (x, y) in seq {
                                 let (nx, ny) = (
-                                    width * 0.5 + x * GRID_SIZE,
-                                    height * 0.5 + y * GRID_SIZE * -1.0,
+                                    width * 0.5 + x * scale_factor,
+                                    height * 0.5 + y * scale_factor * -1.0,
                                 );
                                 ctx.line_to(nx, ny);
                             }
@@ -180,24 +201,27 @@ impl Graph
     }
 }
 
-fn generate_seq(program: &ContextFunction, ctx: &Context) -> Vec<(f64, f64)>
+fn generate_seq(program: &ContextFunction, ctx: &Context, scale: (f64, f64, f64))
+    -> Vec<(f64, f64)>
 {
     use treecalc::program::{
         context::ContextFunction::*, execute_with_ctx, node::Node::*, num::Num, Computation::*,
     };
-    const MIN: f64 = -50.0;
-    const MAX: f64 = 50.0;
-    const STP: f64 = 0.25;
+    let step_size: f64 = (0.5 / scale.2) * 0.5;
+    // TODO: adjust these parameters to minimize effort
+    let min = -50.0;
+    let max = 50.0;
+
+    let mut temp_ctx = ctx.clone();
     let mut results = Vec::new();
-    let mut i = MIN;
+    let mut i = min;
     loop {
-        if MAX < i {
+        if max < i {
             break;
         }
-        // FIXME: this is very bad
-        let mut temp_ctx = ctx.clone();
         let result = match program {
             Virtual(prog) => {
+                // FIXME: should lookup name of first argument instead of x
                 temp_ctx.set("x".to_string(), Box::new(NVal(Num::from(i as f64))));
                 execute_with_ctx(&prog, &mut temp_ctx)
             }
@@ -206,7 +230,7 @@ fn generate_seq(program: &ContextFunction, ctx: &Context) -> Vec<(f64, f64)>
         if let Ok(Numeric(n)) = result {
             results.push((i as f64, n.into()));
         }
-        i += STP;
+        i += step_size;
     }
     results
 }
