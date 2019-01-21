@@ -6,7 +6,7 @@ use relm::DrawHandler;
 
 use gtk::DrawingArea;
 
-use treecalc::program::context::{Context, ContextFunction};
+use localc::program::context::{Context, ContextFunction};
 
 const LINE_WIDTH: f64 = 0.5;
 const GRID_SIZE: f64 = 20.0;
@@ -204,7 +204,7 @@ impl Graph
 fn generate_seq(program: &ContextFunction, ctx: &Context, scale: (f64, f64, f64))
     -> Vec<(f64, f64)>
 {
-    use treecalc::program::{
+    use localc::program::{
         context::ContextFunction::*, execute_with_ctx, node::Node::*, num::Num, Computation::*,
     };
     let step_size: f64 = (0.5 / scale.2) * 0.5;

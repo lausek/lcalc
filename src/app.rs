@@ -8,7 +8,7 @@ use gtk::{Inhibit, Window, WindowType};
 
 use relm::{Relm, Update, Widget};
 
-use treecalc::{
+use localc::{
     parser::parse,
     program::{context::Context, execute_with_ctx},
 };
@@ -57,7 +57,7 @@ impl App
 {
     fn update_context(&mut self, cmd: String)
     {
-        use treecalc::program::node::Node::*;
+        use localc::program::node::Node::*;
         match parse(cmd) {
             Ok(program) => {
                 let ret =

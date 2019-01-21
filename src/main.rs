@@ -7,7 +7,7 @@ extern crate gtk;
 extern crate relm;
 #[macro_use]
 extern crate relm_derive;
-extern crate treecalc;
+extern crate localc;
 
 mod app;
 mod widget;
